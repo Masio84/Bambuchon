@@ -115,19 +115,16 @@ export default function BambuchoDashboard() {
   const [filterCategory, setFilterCategory] = useState("Todas");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Modal State
   const [activeModal, setActiveModal] = useState<"view" | "edit" | "delete" | null>(null);
   const [selectedGasto, setSelectedGasto] = useState<any>(null);
-  const [editFormData, setEditFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editFormData, setEditFormData] = useState({ concepto: '', importe: '', categoria: '', usuario: '' });
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Clock Loader
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     setIsMounted(true);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -297,6 +294,8 @@ export default function BambuchoDashboard() {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
   };
+
+  if (!isMounted) return null;
 
   return (
     <div className="dashboardContainer">
