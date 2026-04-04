@@ -1,4 +1,5 @@
 "use client";
+// Force rebuild: stable version restored - 01:27 04/04
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase-client";
