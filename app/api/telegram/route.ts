@@ -53,11 +53,11 @@ async function handleMessage(message: any) {
         data: base64,
       }
     };
-    
+
     // Si hay texto/caption, lo agregamos al Prompt en el helper
     if (text) {
-        // En este caso el helper recibe un string o un objeto. 
-        // Modificaremos el Prompt para incluir el caption si existe.
+      // En este caso el helper recibe un string o un objeto. 
+      // Modificaremos el Prompt para incluir el caption si existe.
     }
   } else if (text) {
     extractionContent = text;
@@ -86,13 +86,14 @@ async function handleMessage(message: any) {
   }).select().single();
 
   if (error || !data) {
-    await telegram.sendMessage(chatId, "❌ Error al guardar en la base de datos.");
+    console.error("Supabase error:", JSON.stringify(error));
+    await telegram.sendMessage(chatId, `❌ Error: ${error?.message || 'sin data'}`);
     return NextResponse.json({ ok: true });
   }
 
   // Responder con botones
   const replyText = `🛒 ¿Es correcto este gasto?\n\n📝 <b>${extraction.concepto}</b>\n📂 ${extraction.categoria}\n💰 $${extraction.importe.toFixed(2)}`;
-  
+
   const keyboard = {
     inline_keyboard: [
       [
