@@ -359,6 +359,10 @@ export default function BambuchoDashboard() {
         </motion.div>
       </motion.main>
 
+      <footer className="dashboardFooter">
+        <p>&copy; {new Date().getFullYear()} Masio Technologies & Digital Solutions. Todos los derechos reservados.</p>
+      </footer>
+
       {/* MODALS */}
       <AnimatePresence>
         {activeModal && (

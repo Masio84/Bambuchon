@@ -713,3 +713,19 @@
     padding: 0.75rem 1rem;
   }
 }
+/* ── FOOTER ── */
+.dashboardFooter {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+}
+
+.dashboardFooter p {
+  margin: 0;
+  opacity: 0.8;
+}
