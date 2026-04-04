@@ -26,9 +26,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const fontClassName = `${bebasNeue.variable} ${dmSans.variable}`;
+  
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${dmSans.variable}`}>
-      <body>{children}</body>
+    <html lang="en" className={fontClassName}>
+      <body className={fontClassName}>{children}</body>
     </html>
   );
 }

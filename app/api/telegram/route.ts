@@ -29,6 +29,7 @@ async function handleMessage(message: any) {
   const photos = message.photo;
 
   let extractionContent;
+  let imageUrl = null;
 
   if (photos && photos.length > 0) {
     // Tomamos la versión más grande de la foto
@@ -45,11 +46,35 @@ async function handleMessage(message: any) {
       return NextResponse.json({ ok: true });
     }
 
+    // --- Subida a Supabase Storage ---
+    try {
+      const buffer = Buffer.from(base64, 'base64');
+      const fileName = `gasto_${Date.now()}.jpg`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('gastos-imagenes')
+        .upload(fileName, buffer, { 
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error("Storage Error:", uploadError);
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from('gastos-imagenes')
+          .getPublicUrl(fileName);
+        imageUrl = publicUrl;
+      }
+    } catch (err) {
+      console.error("Image Upload Processing Error:", err);
+    }
+
     extractionContent = {
       type: "image" as const,
       source: {
         type: "base64" as const,
-        media_type: "image/jpeg" as const, // Asumimos JPEG por simplicidad
+        media_type: "image/jpeg" as const,
         data: base64,
       }
     };
@@ -82,7 +107,9 @@ async function handleMessage(message: any) {
     categoria: extraction.categoria || "Otros",
     confirmado: false,
     telegram_msg_id: message.message_id,
-    telegram_user_id: message.from.id
+    telegram_user_id: message.from.id,
+    imagen_url: imageUrl,
+    fecha: new Date().toISOString()
   }).select().single();
 
   if (error || !data) {
