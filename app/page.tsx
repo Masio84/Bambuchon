@@ -19,13 +19,13 @@ import {
   Area
 } from "recharts";
 import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
-import { 
-  TrendingUp, 
-  Users, 
-  Calendar, 
-  CreditCard, 
-  Filter, 
-  ChevronDown, 
+import {
+  TrendingUp,
+  Users,
+  Calendar,
+  CreditCard,
+  Filter,
+  ChevronDown,
   Search,
   Wallet,
   Sun,
@@ -80,13 +80,13 @@ function AnimatedNumber({ value }: { value: number }) {
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
+
       // Easing: easeOutQuad (progress * (2 - progress))
       const easedProgress = progress * (2 - progress);
       const current = Math.floor(startValue + (value - startValue) * easedProgress);
-      
+
       setDisplayValue(current);
-      
+
       if (progress < 1) {
         window.requestAnimationFrame(step);
       }
@@ -127,9 +127,7 @@ export default function BambuchoDashboard() {
   // Clock Loader
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    
     setIsMounted(true);
-
     return () => clearInterval(timer);
   }, []);
 
@@ -201,7 +199,7 @@ export default function BambuchoDashboard() {
   // KPIs & Stats
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  
+
   const stats = useMemo(() => {
     const monthly = gastos.filter(g => {
       const d = new Date(g.fecha);
@@ -211,11 +209,11 @@ export default function BambuchoDashboard() {
     const total = monthly.reduce((acc, curr) => acc + (curr.importe || 0), 0);
     const jorge = monthly.filter(g => g.usuario === "Jorge").reduce((acc, curr) => acc + (curr.importe || 0), 0);
     const diana = monthly.filter(g => g.usuario === "Diana").reduce((acc, curr) => acc + (curr.importe || 0), 0);
-    
-    return { 
-      total, 
-      jorge, 
-      diana, 
+
+    return {
+      total,
+      jorge,
+      diana,
       count: monthly.length,
       last: gastos[0] || null
     };
@@ -243,20 +241,12 @@ export default function BambuchoDashboard() {
 
     const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     let cumulative = 0;
-    const sortedDays = [1, 2, 3, 4, 5, 6, 0]; 
+    const sortedDays = [1, 2, 3, 4, 5, 6, 0];
     return sortedDays.map(day => {
       cumulative += (weekSpending[day] || 0);
       return { day: labels[day], amount: cumulative };
     });
   }, [gastos]);
-
-  const pieData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    filteredGastos.forEach(g => {
-      counts[g.categoria] = (counts[g.categoria] || 0) + (g.importe || 0);
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredGastos]);
 
   // Handlers
   const openModal = (type: "view" | "edit" | "delete", gasto: any) => {
@@ -292,7 +282,7 @@ export default function BambuchoDashboard() {
         usuario: editFormData.usuario
       })
       .eq("id", selectedGasto.id);
-    
+
     if (error) alert("Error al actualizar el gasto");
     setIsSubmitting(false);
     closeModal();
@@ -313,11 +303,11 @@ export default function BambuchoDashboard() {
       <header className="premiumHeader">
         <div className="brand">
           <span style={{ fontSize: '2.5rem' }}>🐰</span>
-          <h1 className="brandName" style={{ letterSpacing: '0.05em' }}>Bambuchón</h1>
+          <h1 className="brandName" style={{ letterSpacing: '0.05em' }}>🐰 Bambuchón</h1>
         </div>
 
         <div className="hidden md:block headerClock">
-           {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {currentTime.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
+          {currentTime.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, {currentTime.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false })}
         </div>
 
         <div className="headerActions">
@@ -330,7 +320,7 @@ export default function BambuchoDashboard() {
         </div>
       </header>
 
-      <motion.main 
+      <motion.main
         className="dashboardContent"
         variants={containerVariants}
         initial="hidden"
@@ -342,12 +332,12 @@ export default function BambuchoDashboard() {
             <div className="kpiLabel">Presupuesto Mes</div>
             <div className="kpiValue"><AnimatedNumber value={stats.total} /></div>
           </motion.div>
-          
+
           <motion.div variants={itemVariants} className="kpiCard" style={{ "--accent-color": USER_COLORS.Jorge } as any}>
             <div className="kpiLabel">Gasto Jorge</div>
             <div className="kpiValue"><AnimatedNumber value={stats.jorge} /></div>
           </motion.div>
-          
+
           <motion.div variants={itemVariants} className="kpiCard" style={{ "--accent-color": USER_COLORS.Diana } as any}>
             <div className="kpiLabel">Gasto Diana</div>
             <div className="kpiValue"><AnimatedNumber value={stats.diana} /></div>
@@ -367,8 +357,8 @@ export default function BambuchoDashboard() {
             </div>
           </div>
           <div className="progressBarWrapper">
-            <motion.div 
-              className={`progressBar ${budgetColorClass}`} 
+            <motion.div
+              className={`progressBar ${budgetColorClass}`}
               initial={{ width: 0 }}
               animate={{ width: `${budgetPercent}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
@@ -379,21 +369,21 @@ export default function BambuchoDashboard() {
         {/* Middle Section: Trends & Last Expense */}
         <div className="summaryRow">
           <motion.div variants={itemVariants} className="chartCard">
-            <h2 className="tableTitle">Tendencia Acumulada Semanal</h2>
+            <h2 className="chartTitle">Tendencia Acumulada Semanal</h2>
             <div style={{ height: 260, minWidth: 0, width: '100%', position: 'relative' }}>
               {isMounted && (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={lineData}>
                     <defs>
                       <linearGradient id="colorAmt" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#1F2937' : '#E2E8F0'} />
                     <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#94A3B8' }} dy={10} />
                     <YAxis hide domain={[0, 'auto']} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: 'var(--card-bg)', boxShadow: 'var(--card-shadow-hover)', color: 'var(--text-main)' }}
                       formatter={(val: any) => [`$${val?.toLocaleString()}`, 'Acumulado']}
                     />
@@ -408,8 +398,8 @@ export default function BambuchoDashboard() {
             <div className="lastExpenseTitle">Último Gasto</div>
             {stats.last && (
               <>
-                <div 
-                  className="expenseIconLarge" 
+                <div
+                  className="expenseIconLarge"
                   style={{ backgroundColor: CATEGORY_MAP[stats.last.categoria]?.color || "#cbd5e1" }}
                 >
                   {(() => {
@@ -420,7 +410,7 @@ export default function BambuchoDashboard() {
                 <div className="lastExpenseConcept">
                   {stats.last.concepto}
                   {stats.last.imagen_url && (
-                    <button 
+                    <button
                       onClick={() => setImageModalUrl(stats.last.imagen_url)}
                       className="ml-2 text-blue-500 hover:text-blue-700 p-1"
                       title="Ver foto"
@@ -429,13 +419,13 @@ export default function BambuchoDashboard() {
                     </button>
                   )}
                 </div>
-                <div 
-                  className="lastExpenseAmount" 
+                <div
+                  className="lastExpenseAmount"
                   style={{ color: CATEGORY_MAP[stats.last.categoria]?.color }}
                 >
                   ${stats.last.importe?.toLocaleString()}
                 </div>
-                
+
                 <span className={`pillBadge badge-user-${stats.last.usuario.toLowerCase()}`}>
                   {stats.last.usuario}
                 </span>
@@ -450,129 +440,129 @@ export default function BambuchoDashboard() {
 
         {/* Table/Movements Section */}
         <motion.div variants={itemVariants} className="tableSection">
-           <div className="p-8 border-b border-[var(--border-light)]">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="tableTitle" style={{ margin: 0, paddingLeft: 0, paddingTop: 0 }}>Movimientos</h2>
-                <div className="pillGroup">
-                  {["Todos", "Jorge", "Diana"].map(u => (
-                    <button 
-                      key={u}
-                      className={`pillBtn ${filterUser === u ? 'active' : ''}`}
-                      onClick={() => setFilterUser(u)}
-                    >
-                      {u}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="categoryScroll">
-                <button 
-                  className={`catPill ${filterCategory === 'Todas' ? 'active' : ''}`}
-                  onClick={() => setFilterCategory('Todas')}
-                  style={{ "--cat-color": "#64748B", "--cat-color-alpha": "#64748B15" } as any}
-                >
-                  <Filter size={14} /> Todas
-                </button>
-                {Object.entries(CATEGORY_MAP).map(([name, config]) => (
-                  <button 
-                    key={name}
-                    className={`catPill ${filterCategory === name ? 'active' : ''}`}
-                    onClick={() => setFilterCategory(name)}
-                    style={{ "--cat-color": config.color, "--cat-color-alpha": `${config.color}15` } as any}
+          <div className="p-8 border-b border-[var(--border-light)]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="tableTitle" style={{ margin: 0, paddingLeft: 0, paddingTop: 0 }}>Movimientos</h2>
+              <div className="pillGroup">
+                {["Todos", "Jorge", "Diana"].map(u => (
+                  <button
+                    key={u}
+                    className={`pillBtn ${filterUser === u ? 'active' : ''}`}
+                    onClick={() => setFilterUser(u)}
                   >
-                    <config.icon size={14} /> {name}
+                    {u}
                   </button>
                 ))}
               </div>
-           </div>
-           <div className="tableWrapper">
-              <table className="movementsTable">
-                 <thead>
-                    <tr>
-                       <th className="text-left">Día</th>
-                       <th className="text-left">Detalle</th>
-                       <th className="text-left">Categoría</th>
-                       <th className="text-left">Usuario</th>
-                       <th className="text-right">Monto</th>
-                       <th className="text-right">Acciones</th>
-                    </tr>
-                 </thead>
-                 <tbody>
-                    <AnimatePresence mode="popLayout">
-                       {filteredGastos.map((g) => (
-                         <motion.tr 
-                           key={g.id}
-                           initial={{ opacity: 0 }}
-                           animate={{ opacity: 1 }}
-                           exit={{ opacity: 0 }}
-                           transition={{ duration: 0.2 }}
-                         >
-                            <td className="text-muted font-bold text-[10px] tracking-wider">
-                                {new Date(g.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}
-                             </td>
-                             <td className="font-bold text-sm">
-                               {g.concepto}
-                               {g.imagen_url && (
-                                 <button 
-                                   onClick={() => setImageModalUrl(g.imagen_url)}
-                                   className="ml-2 text-blue-500 hover:text-blue-700 p-1"
-                                   title="Ver foto"
-                                 >
-                                   <Camera size={14} className="inline-block" />
-                                 </button>
-                               )}
-                             </td>
-                             <td>
-                                <span 
-                                  className="pillBadge badge-cat" 
-                                  style={{ 
-                                    "--cat-color": CATEGORY_MAP[g.categoria]?.color,
-                                    "--cat-color-alpha": `${CATEGORY_MAP[g.categoria]?.color}15`
-                                  } as any}
-                                >
-                                  {(() => {
-                                    const Icon = CATEGORY_MAP[g.categoria]?.icon || MoreHorizontal;
-                                    return <Icon size={12} />;
-                                  })()}
-                                  {g.categoria}
-                                </span>
-                             </td>
-                             <td>
-                                <span className={`pillBadge badge-user-${g.usuario.toLowerCase()}`}>
-                                   {g.usuario}
-                                </span>
-                             </td>
-                             <td className="text-right td-amount">
-                                ${g.importe?.toLocaleString()}
-                             </td>
-                             <td>
-                                <div className="actionPillGroup">
-                                   <button className="actionPill pill-view" onClick={() => openModal('view', g)} title="Ver"><Eye size={14} /> <span className="actionText">Ver</span></button>
-                                   <button className="actionPill pill-edit" onClick={() => openModal('edit', g)} title="Editar"><Pencil size={14} /> <span className="actionText">Editar</span></button>
-                                   <button className="actionPill pill-delete" onClick={() => openModal('delete', g)} title="Borrar"><Trash2 size={14} /> <span className="actionText">Borrar</span></button>
-                                </div>
-                             </td>
-                         </motion.tr>
-                       ))}
-                    </AnimatePresence>
-                 </tbody>
-              </table>
-           </div>
+            </div>
+
+            <div className="categoryScroll">
+              <button
+                className={`catPill ${filterCategory === 'Todas' ? 'active' : ''}`}
+                onClick={() => setFilterCategory('Todas')}
+                style={{ "--cat-color": "#64748B", "--cat-color-alpha": "#64748B15" } as any}
+              >
+                <Filter size={14} /> Todas
+              </button>
+              {Object.entries(CATEGORY_MAP).map(([name, config]) => (
+                <button
+                  key={name}
+                  className={`catPill ${filterCategory === name ? 'active' : ''}`}
+                  onClick={() => setFilterCategory(name)}
+                  style={{ "--cat-color": config.color, "--cat-color-alpha": `${config.color}15` } as any}
+                >
+                  <config.icon size={14} /> {name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="tableWrapper">
+            <table className="movementsTable">
+              <thead>
+                <tr>
+                  <th className="text-left">Día</th>
+                  <th className="text-left">Detalle</th>
+                  <th className="text-left">Categoría</th>
+                  <th className="text-left">Usuario</th>
+                  <th className="text-right">Monto</th>
+                  <th className="text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <AnimatePresence mode="popLayout">
+                  {filteredGastos.map((g) => (
+                    <motion.tr
+                      key={g.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <td className="text-muted font-bold text-[10px] tracking-wider">
+                        {new Date(g.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }).toUpperCase()}
+                      </td>
+                      <td className="font-bold text-sm">
+                        {g.concepto}
+                        {g.imagen_url && (
+                          <button
+                            onClick={() => setImageModalUrl(g.imagen_url)}
+                            className="ml-2 text-blue-500 hover:text-blue-700 p-1"
+                            title="Ver foto"
+                          >
+                            <Camera size={14} className="inline-block" />
+                          </button>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className="pillBadge badge-cat"
+                          style={{
+                            "--cat-color": CATEGORY_MAP[g.categoria]?.color,
+                            "--cat-color-alpha": `${CATEGORY_MAP[g.categoria]?.color}15`
+                          } as any}
+                        >
+                          {(() => {
+                            const Icon = CATEGORY_MAP[g.categoria]?.icon || MoreHorizontal;
+                            return <Icon size={12} />;
+                          })()}
+                          {g.categoria}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`pillBadge badge-user-${g.usuario.toLowerCase()}`}>
+                          {g.usuario}
+                        </span>
+                      </td>
+                      <td className="text-right td-amount">
+                        ${g.importe?.toLocaleString()}
+                      </td>
+                      <td>
+                        <div className="actionPillGroup">
+                          <button className="actionPill pill-view" onClick={() => openModal('view', g)} title="Ver"><Eye size={14} /> <span className="actionText">Ver</span></button>
+                          <button className="actionPill pill-edit" onClick={() => openModal('edit', g)} title="Editar"><Pencil size={14} /> <span className="actionText">Editar</span></button>
+                          <button className="actionPill pill-delete" onClick={() => openModal('delete', g)} title="Borrar"><Trash2 size={14} /> <span className="actionText">Borrar</span></button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </motion.main>
 
       {/* Modals Overlay */}
       <AnimatePresence>
         {activeModal && (
-          <motion.div 
+          <motion.div
             className="modalOverlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeModal}
           >
-            <motion.div 
+            <motion.div
               className="modalContent"
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -601,9 +591,9 @@ export default function BambuchoDashboard() {
                     </div>
                     <div className="flex justify-between items-center p-3 rounded-xl bg-[var(--border-light)]">
                       <span className="text-xs font-bold text-muted uppercase">Categoría</span>
-                      <span 
-                        className="pillBadge badge-cat" 
-                        style={{ 
+                      <span
+                        className="pillBadge badge-cat"
+                        style={{
                           "--cat-color": CATEGORY_MAP[selectedGasto.categoria]?.color,
                           "--cat-color-alpha": `${CATEGORY_MAP[selectedGasto.categoria]?.color}15`
                         } as any}
@@ -630,7 +620,7 @@ export default function BambuchoDashboard() {
                   <form id="editForm" onSubmit={handleUpdate}>
                     <div className="formGroup">
                       <label className="formLabel">Concepto</label>
-                      <input 
+                      <input
                         className="formInput"
                         value={editFormData.concepto || ""}
                         onChange={(e) => setEditFormData({ ...editFormData, concepto: e.target.value })}
@@ -639,7 +629,7 @@ export default function BambuchoDashboard() {
                     </div>
                     <div className="formGroup">
                       <label className="formLabel">Importe</label>
-                      <input 
+                      <input
                         type="number"
                         className="formInput"
                         value={editFormData.importe || ""}
@@ -649,7 +639,7 @@ export default function BambuchoDashboard() {
                     </div>
                     <div className="formGroup">
                       <label className="formLabel">Categoría</label>
-                      <select 
+                      <select
                         className="formSelect"
                         value={editFormData.categoria || ""}
                         onChange={(e) => setEditFormData({ ...editFormData, categoria: e.target.value })}
@@ -659,7 +649,7 @@ export default function BambuchoDashboard() {
                     </div>
                     <div className="formGroup">
                       <label className="formLabel">Usuario</label>
-                      <select 
+                      <select
                         className="formSelect"
                         value={editFormData.usuario || ""}
                         onChange={(e) => setEditFormData({ ...editFormData, usuario: e.target.value })}
@@ -684,9 +674,9 @@ export default function BambuchoDashboard() {
 
               <div className="modalFooter">
                 {activeModal === 'edit' && (
-                  <button 
-                    type="submit" 
-                    form="editForm" 
+                  <button
+                    type="submit"
+                    form="editForm"
                     className="btn-primary w-full"
                     disabled={isSubmitting}
                   >
@@ -696,7 +686,7 @@ export default function BambuchoDashboard() {
                 {activeModal === 'delete' && (
                   <>
                     <button className="flex-1 p-3 rounded-xl font-bold border border-[var(--border-light)] hover:bg-[var(--border-light)] transition-colors" onClick={closeModal}>Cancelar</button>
-                    <button 
+                    <button
                       className="flex-1 p-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
                       onClick={handleDelete}
                       disabled={isSubmitting}
@@ -717,15 +707,15 @@ export default function BambuchoDashboard() {
       {/* Lightbox Modal */}
       <AnimatePresence>
         {imageModalUrl && (
-          <motion.div 
+          <motion.div
             className="modalOverlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setImageModalUrl(null)}
-            style={{ zIndex: 1100 }}
+            style={{ zIndex: 2100 }}
           >
-            <motion.div 
+            <motion.div
               className="modalContent"
               style={{ maxWidth: 'min(90vw, 800px)', padding: 0, overflow: 'hidden', backgroundColor: 'transparent', boxShadow: 'none', border: 'none' }}
               initial={{ scale: 0.9, opacity: 0 }}
@@ -734,14 +724,14 @@ export default function BambuchoDashboard() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative">
-                <img 
-                  src={imageModalUrl} 
-                  alt="Recibo" 
+                <img
+                  src={imageModalUrl}
+                  alt="Recibo"
                   className="w-full h-auto rounded-2xl shadow-2xl"
                   style={{ maxHeight: '85vh', objectFit: 'contain' }}
                 />
-                <button 
-                  className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors" 
+                <button
+                  className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
                   onClick={() => setImageModalUrl(null)}
                 >
                   <X size={20} />
