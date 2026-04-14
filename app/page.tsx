@@ -315,6 +315,17 @@ export default function BambuchoDashboard() {
           {formatDate(currentTime)}, {formatTime(currentTime)}
         </div>
         <div className="headerActions">
+          {session?.user && (
+            <div className="headerUserProfile">
+              <div className="headerAvatar">{userProfile.avatar}</div>
+              <div className="headerUserData">
+                <span className="headerUserName">{userProfile.name}</span>
+                <span className={`headerUserRole ${session.user.email === "masio.tds@gmail.com" ? "role-admin" : ""}`}>
+                  {session.user.email === "masio.tds@gmail.com" ? "Superadmin" : "Usuario"}
+                </span>
+              </div>
+            </div>
+          )}
           <button className="iconBtn" onClick={() => window.open("https://t.me/Bambuchon_bot", "_blank")} title="Abrir Bot">
             <Send size={18} />
           </button>

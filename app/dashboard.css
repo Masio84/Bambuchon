@@ -88,6 +88,63 @@
   gap: 0.75rem;
 }
 
+.headerUserProfile {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.4rem 1rem 0.4rem 0.5rem;
+  background: var(--border-light);
+  border-radius: 50px;
+  margin-right: 0.5rem;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.headerUserProfile:hover {
+  border-color: #3B82F640;
+  background: var(--dash-bg);
+}
+
+.headerAvatar {
+  width: 34px;
+  height: 34px;
+  background: var(--card-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.headerUserData {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.headerUserName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.headerUserRole {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.headerUserRole.role-admin {
+  color: #854D0E;
+}
+
+[data-theme='dark'] .headerUserRole.role-admin {
+  color: #FDE68A;
+}
+
 .iconBtn {
   width: 38px;
   height: 38px;
