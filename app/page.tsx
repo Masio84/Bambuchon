@@ -66,57 +66,34 @@ export default function BambuchoDashboard() {
   const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchProfile = async (uid: string, userSession: any) => {
-    // 1. Intentar obtener perfil de la base de datos
-    let { data, error } = await supabase.from('perfiles').select('*').eq('id', uid).single();
-    
-    // Fallback de datos desde la sesión si falla la BD o el registro no existe
-    const fallbackName = userSession.user_metadata?.display_name || userSession.email?.split('@')[0] || "Usuario";
-    const isSuperAdminEmail = userSession.email === "masio.tds@gmail.com";
+    const { data } = await supabase.from('perfiles').select('*').eq('id', uid).single();
+    const fallbackProfile = {
+      id: uid,
+      name: userSession.user_metadata?.display_name || userSession.email?.split('@')[0] || "Usuario",
+      avatar: "👤",
+      rol: userSession.email === "masio.tds@gmail.com" ? "superadmin" : "usuario"
+    };
 
-    if (!data || error) {
-      // Si no existe, usamos los datos de la sesión temporalmente
-      setUserProfile({ 
-        id: uid, 
-        name: fallbackName, 
-        avatar: "👤", 
-        rol: isSuperAdminEmail ? "superadmin" : "usuario" 
+    if (data) {
+      setUserProfile({
+        id: data.id,
+        name: data.display_name || fallbackProfile.name,
+        avatar: data.avatar || fallbackProfile.avatar,
+        rol: data.rol
       });
-
-      // Intentar crear el perfil si no existe (Auto-Sincronización)
-      await supabase.from('perfiles').upsert({
-        id: uid,
-        email: userSession.email,
-        display_name: fallbackName,
-        rol: isSuperAdminEmail ? "superadmin" : "usuario"
-      });
+      if (data.rol === 'superadmin' || userSession.email === "masio.tds@gmail.com") {
+        fetchAllProfiles();
+      }
     } else {
-      // Si existe, priorizamos la base de datos pero forzamos superadmin si es el correo maestro
-      setUserProfile({ 
-        id: data.id, 
-        name: data.display_name || fallbackName, 
-        avatar: data.avatar || "👤", 
-        rol: isSuperAdminEmail ? "superadmin" : data.rol 
-      });
-      if (data.rol === 'superadmin' || isSuperAdminEmail) fetchAllProfiles();
+      setUserProfile(fallbackProfile);
     }
   };
 
   const fetchAllProfiles = async () => {
-    setDbError(null);
-    const { data, error } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
-    
-    if (error) {
-      console.error("Error cargando perfiles:", error);
-      setDbError(error.message);
-    }
-    
-    if (data) {
-      setAllProfiles(data);
-      if (data.length === 0) setDbError("La tabla existe pero devolvió 0 registros. Revisa las políticas RLS.");
-    }
+    const { data } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
+    if (data) setAllProfiles(data);
   };
 
   useEffect(() => {
@@ -565,7 +542,7 @@ export default function BambuchoDashboard() {
               <tbody>
                 <AnimatePresence mode="popLayout">
                   {filteredGastos.map(g => (
-                    <motion.tr key={g.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    <motion.tr key={`gasto-${g.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
                       <td style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 1 }}>
                         {new Date(g.fecha).toLocaleDateString("es-MX", { day: "2-digit", month: "short" }).toUpperCase()}
                       </td>
@@ -612,7 +589,7 @@ export default function BambuchoDashboard() {
       {/* MODALS */}
       <AnimatePresence>
         {isSettingsOpen && (
-          <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)}>
+          <motion.div key="modal-settings" className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)}>
             <motion.div className="modalContent settingsModal" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()}>
               <div className="modalHeader">
                 <h2 className="modalTitle">Configuración</h2>
@@ -665,7 +642,7 @@ export default function BambuchoDashboard() {
                         <div className="emojiGrid">
                           {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
                             <button 
-                              key={emoji}
+                              key={`emoji-profile-${emoji}`}
                               type="button"
                               className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
                               onClick={() => setUserProfile({...userProfile, avatar: emoji})}
@@ -683,24 +660,15 @@ export default function BambuchoDashboard() {
 
                   {activeTab === "usuarios" && userProfile.rol === "superadmin" && (
                     <div className="userManagementSection" style={{ marginTop: 0, paddingTop: 0, border: 'none' }}>
-                      <div className="sectionHeaderRow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 className="sectionTitle" style={{ margin: 0 }}>
-                          <Users size={16} /> Usuarios ({allProfiles.length})
+                      <div className="sectionHeaderRow">
+                        <h3 className="sectionTitle">
+                          <Users size={16} /> Gestión de Usuarios ({allProfiles.length})
                         </h3>
-                        <button className="iconBtn small" onClick={fetchAllProfiles} title="Recargar lista">
-                          <RefreshCw size={14} className={authLoading ? "spin" : ""} />
-                        </button>
                       </div>
-
-                      {dbError && (
-                        <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                          <strong>⚠️ Error de Base de Datos:</strong> {dbError}
-                        </div>
-                      )}
                       
                       <div className="userList">
-                        {allProfiles.map(profile => (
-                          <div key={profile.id} className="userItem">
+                        {allProfiles.map((profile, idx) => (
+                          <div key={`user-item-${profile.id || idx}`} className="userItem">
                             <div className="userItemAvatarSmall">{profile.avatar || "👤"}</div>
                             <div className="userItemInfo">
                               <span className="userItemName">{profile.display_name}</span>
@@ -741,9 +709,10 @@ export default function BambuchoDashboard() {
           </motion.div>
         )}
 
+        <AnimatePresence key="modal-presence">
         {editingUser && (
-          <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ zIndex: 1100 }} onClick={() => setEditingUser(null)}>
-            <motion.div className="modalContent" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()}>
+          <motion.div key="modal-overlay-edit" className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ zIndex: 1100 }} onClick={() => setEditingUser(null)}>
+            <motion.div className="modalContent" key="modal-content-edit" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()}>
               <div className="modalHeader">
                 <h2 className="modalTitle">Editar Usuario</h2>
                 <button className="modalClose" onClick={() => setEditingUser(null)}><X size={22} /></button>
@@ -774,9 +743,9 @@ export default function BambuchoDashboard() {
                   <div className="formGroup">
                     <label className="formLabel">Icono / Emoji</label>
                     <div className="emojiGrid">
-                      {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
+                      {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map((emoji, idx) => (
                         <button 
-                          key={emoji}
+                          key={`emoji-edit-${idx}`}
                           type="button"
                           className={`emojiBtn ${editingUser.avatar === emoji ? "active" : ""}`}
                           onClick={() => setEditingUser({...editingUser, avatar: emoji})}
@@ -794,9 +763,10 @@ export default function BambuchoDashboard() {
             </motion.div>
           </motion.div>
         )}
+        </AnimatePresence>
 
         {activeModal && (
-          <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
+          <motion.div key="modal-active" className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
             <motion.div className="modalContent" initial={{ scale: 0.92, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()}>
 
               <div className="modalHeader">
