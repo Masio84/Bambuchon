@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import "./dashboard.css";
 
-const BUDGET_TOTAL = 9000;
+// Removed hardcoded BUDGET_TOTAL to use dynamic incomes
 
 const CATEGORY_MAP: Record<string, { color: string; icon: any }> = {
   Despensa: { color: "#0099BB", icon: ShoppingCart },
@@ -22,6 +22,7 @@ const CATEGORY_MAP: Record<string, { color: string; icon: any }> = {
   Transporte: { color: "#E07A20", icon: Truck },
   Restaurantes: { color: "#9B4DB0", icon: Utensils },
   Facturable: { color: "#C8A000", icon: FileText },
+  Ingreso: { color: "#10B981", icon: Send },
   Otros: { color: "#5B4DB0", icon: MoreHorizontal },
 };
 
@@ -49,7 +50,7 @@ export default function BambuchoDashboard() {
   const [filterCategory, setFilterCategory] = useState("Todas");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeModal, setActiveModal] = useState<"view" | "edit" | "delete" | null>(null);
+  const [activeModal, setActiveModal] = useState<"view" | "edit" | "delete" | "create" | null>(null);
   const [selectedGasto, setSelectedGasto] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editFormData, setEditFormData] = useState({ concepto: "", importe: "", categoria: "", usuario: "" });
@@ -84,10 +85,13 @@ export default function BambuchoDashboard() {
 
     const channel = supabase.channel("gastos_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "gastos" }, (payload) => {
+        console.log("Realtime event received:", payload);
         if (payload.eventType === "INSERT") setGastos(p => [payload.new, ...p]);
         else if (payload.eventType === "UPDATE") setGastos(p => p.map(g => g.id === payload.new.id ? payload.new : g));
         else if (payload.eventType === "DELETE") setGastos(p => p.filter(g => g.id !== payload.old.id));
-      }).subscribe();
+      }).subscribe((status) => {
+        console.log("Supabase Realtime Status:", status);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -104,16 +108,21 @@ export default function BambuchoDashboard() {
       const d = new Date(g.fecha);
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
+    const ingresos = monthly.filter(g => g.tipo === "ingreso").reduce((s, g) => s + (g.importe || 0), 0);
+    const egresos = monthly.filter(g => g.tipo === "egreso").reduce((s, g) => s + (g.importe || 0), 0);
     return {
-      total: monthly.reduce((s, g) => s + (g.importe || 0), 0),
-      jorge: monthly.filter(g => g.usuario === "Jorge").reduce((s, g) => s + (g.importe || 0), 0),
-      diana: monthly.filter(g => g.usuario === "Diana").reduce((s, g) => s + (g.importe || 0), 0),
+      total: egresos,
+      ingresos,
+      balance: ingresos - egresos,
+      jorge: monthly.filter(g => g.usuario === "Jorge" && g.tipo === "egreso").reduce((s, g) => s + (g.importe || 0), 0),
+      diana: monthly.filter(g => g.usuario === "Diana" && g.tipo === "egreso").reduce((s, g) => s + (g.importe || 0), 0),
       count: monthly.length,
       last: gastos[0] || null,
     };
   }, [gastos]);
 
-  const budgetPct = Math.min((stats.total / BUDGET_TOTAL) * 100, 100);
+  const currentBudget = stats.ingresos || 0;
+  const budgetPct = currentBudget > 0 ? Math.min((stats.total / currentBudget) * 100, 100) : 0;
   const budgetColor = budgetPct > 90 ? "progress-red" : budgetPct > 70 ? "progress-yellow" : "progress-green";
 
   const lineData = useMemo(() => {
@@ -124,16 +133,20 @@ export default function BambuchoDashboard() {
     const byDay: Record<number, number> = {};
     gastos.forEach(g => {
       const d = new Date(g.fecha);
-      if (d >= startOfWeek && d <= today) byDay[d.getDay()] = (byDay[d.getDay()] || 0) + (g.importe || 0);
+      if (d >= startOfWeek && d <= today && g.tipo === "egreso") byDay[d.getDay()] = (byDay[d.getDay()] || 0) + (g.importe || 0);
     });
     const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     let cum = 0;
     return [1, 2, 3, 4, 5, 6, 0].map(d => { cum += byDay[d] || 0; return { day: labels[d], amount: cum }; });
   }, [gastos]);
 
-  const openModal = (type: "view" | "edit" | "delete", gasto: any) => {
+  const openModal = (type: "view" | "edit" | "delete" | "create", gasto: any = null) => {
     setSelectedGasto(gasto);
-    if (type === "edit") setEditFormData({ concepto: gasto.concepto, importe: gasto.importe, categoria: gasto.categoria, usuario: gasto.usuario });
+    if (type === "edit" && gasto) {
+      setEditFormData({ concepto: gasto.concepto, importe: gasto.importe.toString(), categoria: gasto.categoria, usuario: gasto.usuario, tipo: gasto.tipo || "egreso" });
+    } else if (type === "create") {
+      setEditFormData({ concepto: "", importe: "", categoria: "Otros", usuario: "Jorge", tipo: "egreso" });
+    }
     setActiveModal(type);
   };
   const closeModal = () => { setActiveModal(null); setSelectedGasto(null); };
@@ -148,14 +161,23 @@ export default function BambuchoDashboard() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGasto) return;
     setIsSubmitting(true);
-    await supabase.from("gastos").update({
+    const payload = {
       concepto: editFormData.concepto,
       importe: parseFloat(editFormData.importe),
       categoria: editFormData.categoria,
       usuario: editFormData.usuario,
-    }).eq("id", selectedGasto.id);
+      tipo: editFormData.tipo,
+      confirmado: true,
+      fecha: activeModal === "create" ? new Date().toISOString() : selectedGasto?.fecha
+    };
+
+    if (activeModal === "edit" && selectedGasto) {
+      await supabase.from("gastos").update(payload).eq("id", selectedGasto.id);
+    } else if (activeModal === "create") {
+      await supabase.from("gastos").insert(payload);
+    }
+    
     setIsSubmitting(false);
     closeModal();
   };
@@ -186,6 +208,9 @@ export default function BambuchoDashboard() {
           <button className="iconBtn" onClick={toggleTheme} title="Cambiar tema">
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
           </button>
+          <button className="btn-primary" onClick={() => openModal("create")} style={{ padding: "8px 16px", borderRadius: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            <Pencil size={16} /> Nuevo
+          </button>
         </div>
       </header>
 
@@ -194,7 +219,8 @@ export default function BambuchoDashboard() {
         {/* KPIs */}
         <div className="kpiGrid">
           {[
-            { label: "Total del Mes", value: stats.total, accent: "#3B82F6" },
+            { label: "Balance Real", value: stats.balance, accent: stats.balance >= 0 ? "#10B981" : "#EF4444" },
+            { label: "Ingresos Mes", value: stats.ingresos, accent: "#10B981" },
             { label: "Gasto Jorge", value: stats.jorge, accent: "#3B82F6" },
             { label: "Gasto Diana", value: stats.diana, accent: "#F472B6" },
           ].map((kpi, i) => (
@@ -209,10 +235,12 @@ export default function BambuchoDashboard() {
         <motion.div variants={itemVariants} className="budgetSection">
           <div className="budgetHeader">
             <div className="budgetInfo">
-              <h3>Progreso Presupuesto Mensual</h3>
+              <h3>Uso de Ingresos del Mes</h3>
               <div className="budgetPrice">
                 ${stats.total.toLocaleString()}
-                <span style={{ fontSize: "1rem", color: "var(--text-muted)", marginLeft: 8 }}>de $9,000</span>
+                <span style={{ fontSize: "1rem", color: "var(--text-muted)", marginLeft: 8 }}>
+                  {stats.ingresos > 0 ? `de $${stats.ingresos.toLocaleString()} registrados` : "sin ingresos registrados aún"}
+                </span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -257,7 +285,7 @@ export default function BambuchoDashboard() {
 
           {/* LAST EXPENSE CARD */}
           <motion.div variants={itemVariants} className="lastExpenseCard">
-            <div className="lastExpenseTitle">Último Gasto</div>
+            <div className="lastExpenseTitle">Último Movimiento</div>
             {stats.last ? (
               <>
                 <div className="expenseIconLarge" style={{ background: CATEGORY_MAP[stats.last.categoria]?.color || "#94A3B8" }}>
@@ -340,8 +368,8 @@ export default function BambuchoDashboard() {
                       <td>
                         <span className={`pillBadge badge-user-${g.usuario?.toLowerCase()}`}>{g.usuario}</span>
                       </td>
-                      <td style={{ textAlign: "right", fontWeight: 700, fontSize: 15 }}>
-                        ${g.importe?.toLocaleString()}
+                      <td style={{ textAlign: "right", fontWeight: 700, fontSize: 15, color: g.tipo === 'ingreso' ? "#10B981" : "var(--text-main)" }}>
+                        {g.tipo === 'ingreso' ? '+' : '-'}${g.importe?.toLocaleString()}
                       </td>
                       <td>
                         <div className="actionPillGroup">
@@ -372,7 +400,8 @@ export default function BambuchoDashboard() {
               <div className="modalHeader">
                 <h2 className="modalTitle">
                   {activeModal === "view" && "Detalles"}
-                  {activeModal === "edit" && "Editar Gasto"}
+                  {activeModal === "edit" && "Editar Registro"}
+                  {activeModal === "create" && "Nuevo Registro"}
                   {activeModal === "delete" && "Confirmar"}
                 </h2>
                 <button className="modalClose" onClick={closeModal}><X size={22} /></button>
@@ -402,16 +431,30 @@ export default function BambuchoDashboard() {
                   </div>
                 )}
 
-                {/* EDIT */}
-                {activeModal === "edit" && (
+                {/* EDIT / CREATE */}
+                {(activeModal === "edit" || activeModal === "create") && (
                   <form id="editForm" onSubmit={handleUpdate}>
+                    <div className="formGroup">
+                      <label className="formLabel">Tipo</label>
+                      <select className="formSelect" value={editFormData.tipo} onChange={e => {
+                        const newTipo = e.target.value;
+                        setEditFormData({ 
+                          ...editFormData, 
+                          tipo: newTipo,
+                          categoria: newTipo === 'ingreso' ? 'Ingreso' : 'Otros'
+                        });
+                      }}>
+                        <option value="egreso">Egreso (Gasto)</option>
+                        <option value="ingreso">Ingreso</option>
+                      </select>
+                    </div>
                     {[
                       { label: "Concepto", key: "concepto", type: "text" },
                       { label: "Importe", key: "importe", type: "number" },
                     ].map(f => (
                       <div key={f.key} className="formGroup">
                         <label className="formLabel">{f.label}</label>
-                        <input type={f.type} className="formInput" value={(editFormData as any)[f.key]} onChange={e => setEditFormData({ ...editFormData, [f.key]: e.target.value })} required />
+                        <input type={f.type} step="0.01" className="formInput" value={(editFormData as any)[f.key]} onChange={e => setEditFormData({ ...editFormData, [f.key]: e.target.value })} required />
                       </div>
                     ))}
                     <div className="formGroup">
@@ -444,7 +487,7 @@ export default function BambuchoDashboard() {
 
               <div className="modalFooter">
                 {activeModal === "view" && <button className="btn-primary" style={{ width: "100%" }} onClick={closeModal}>Cerrar</button>}
-                {activeModal === "edit" && <button type="submit" form="editForm" className="btn-primary" style={{ width: "100%" }} disabled={isSubmitting}>{isSubmitting ? "Guardando..." : "Guardar Cambios"}</button>}
+                {(activeModal === "edit" || activeModal === "create") && <button type="submit" form="editForm" className="btn-primary" style={{ width: "100%" }} disabled={isSubmitting}>{isSubmitting ? "Guardando..." : "Guardar"}</button>}
                 {activeModal === "delete" && (
                   <>
                     <button onClick={closeModal} style={{ flex: 1, padding: "12px", borderRadius: 10, fontWeight: 700, border: "1px solid var(--border-light)", background: "transparent", color: "var(--text-main)", cursor: "pointer" }}>Cancelar</button>

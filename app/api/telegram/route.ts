@@ -109,7 +109,8 @@ async function handleMessage(message: any) {
     telegram_msg_id: message.message_id,
     telegram_user_id: message.from.id,
     imagen_url: imageUrl,
-    fecha: new Date().toISOString()
+    fecha: new Date().toISOString(),
+    tipo: (extraction.tipo?.toLowerCase() === 'ingreso' ? 'ingreso' : 'egreso')
   }).select().single();
 
   if (error || !data) {
@@ -119,7 +120,9 @@ async function handleMessage(message: any) {
   }
 
   // Responder con botones
-  const replyText = `🛒 ¿Es correcto este gasto?\n\n📝 <b>${extraction.concepto}</b>\n📂 ${extraction.categoria}\n💰 $${extraction.importe.toFixed(2)}`;
+  const emoji = extraction.tipo === 'ingreso' ? '💰' : '🛒';
+  const tipoLabel = extraction.tipo === 'ingreso' ? 'INGRESO' : 'GASTO';
+  const replyText = `${emoji} ¿Es correcto este ${tipoLabel.toLowerCase()}?\n\n📝 <b>${extraction.concepto}</b>\n📂 ${extraction.categoria}\n💰 $${extraction.importe.toFixed(2)}`;
 
   const keyboard = {
     inline_keyboard: [
@@ -155,7 +158,8 @@ async function handleCallback(callback: any) {
     } else {
       await telegram.answerCallbackQuery(callback.id, "✅ Registrado!");
       // Editar el mensaje original para mostrar que ya está registrado
-      await telegram.sendMessage(chatId, `✅ <b>Registrado!</b> $${updated.importe.toFixed(2)} en <i>${updated.categoria}</i> por ${usuario}`);
+      const label = updated.tipo === 'ingreso' ? 'Ingreso' : 'Gasto';
+      await telegram.sendMessage(chatId, `✅ <b>${label} Registrado!</b> $${updated.importe.toFixed(2)} en <i>${updated.categoria}</i> por ${usuario}`);
     }
   } else if (action === 'cancel') {
     const recordId = args[0];

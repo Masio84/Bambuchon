@@ -5,8 +5,9 @@ const anthropic = new Anthropic({
 });
 
 export async function extractExpenseFromContent(content: string | { type: "image", source: { type: "base64", media_type: "image/jpeg", data: string } }, textContext?: string) {
-  const prompt = `Analiza esta imagen o texto de un producto o ticket de compra. Extrae y responde SOLO en JSON con este formato exacto:
-{"concepto": "nombre del producto o servicio", "categoria": "una de estas: Despensa, Entretenimiento, Salud, Transporte, Restaurantes, Facturable, Otros", "importe": 0.00}
+  const prompt = `Analiza esta imagen o texto de una transacción financiera (gasto o ingreso). Extrae y responde SOLO en JSON con este formato exacto:
+{"concepto": "nombre del producto, servicio o fuente de ingreso", "categoria": "una de estas: Despensa, Entretenimiento, Salud, Transporte, Restaurantes, Facturable, Ingreso, Otros", "importe": 0.00, "tipo": "egreso" | "ingreso"}
+Determina el tipo (egreso o ingreso) según el contexto del mensaje o la imagen. Los ingresos suelen ser depósitos, sueldos, transferencias recibidas, etc.
 ${textContext ? `Contexto del usuario (caption): "${textContext}"` : ""}`;
 
   const message = await anthropic.messages.create({
