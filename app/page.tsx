@@ -65,6 +65,7 @@ export default function BambuchoDashboard() {
   const [activeTab, setActiveTab] = useState("perfil");
   const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   const fetchProfile = async (uid: string, userSession: any) => {
     // 1. Intentar obtener perfil de la base de datos
@@ -141,9 +142,28 @@ export default function BambuchoDashboard() {
     setAuthLoading(false);
   };
 
-  const handleToggleRole = async (targetId: string, currentRole: string) => {
-    const newRole = currentRole === 'superadmin' ? 'usuario' : 'superadmin';
-    const { error } = await supabase.from('perfiles').update({ rol: newRole }).eq('id', targetId);
+  const handleUpdateOtherProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setAuthLoading(true);
+    const { error } = await supabase.from('perfiles').update({
+      display_name: editingUser.display_name,
+      avatar: editingUser.avatar,
+      rol: editingUser.rol
+    }).eq('id', editingUser.id);
+    
+    if (!error) {
+      setEditingUser(null);
+      fetchAllProfiles();
+    }
+    setAuthLoading(false);
+  };
+
+  const handleDeleteProfile = async (pid: string) => {
+    if (pid === userProfile.id) return alert("No puedes eliminarte a ti mismo.");
+    if (!confirm("¿Estás seguro de eliminar el perfil de este usuario?")) return;
+    
+    const { error } = await supabase.from('perfiles').delete().eq('id', pid);
     if (!error) fetchAllProfiles();
   };
 
@@ -641,9 +661,12 @@ export default function BambuchoDashboard() {
 
                   {activeTab === "usuarios" && userProfile.rol === "superadmin" && (
                     <div className="userManagementSection" style={{ marginTop: 0, paddingTop: 0, border: 'none' }}>
-                      <h3 className="sectionTitle">
-                        <Users size={16} /> Gestión de Usuarios
-                      </h3>
+                      <div className="sectionHeaderRow">
+                        <h3 className="sectionTitle">
+                          <Users size={16} /> Gestión de Usuarios ({allProfiles.length})
+                        </h3>
+                      </div>
+                      
                       <div className="userList">
                         {allProfiles.map(profile => (
                           <div key={profile.id} className="userItem">
@@ -651,22 +674,91 @@ export default function BambuchoDashboard() {
                             <div className="userItemInfo">
                               <span className="userItemName">{profile.display_name}</span>
                               <span className="userItemEmail">{profile.email}</span>
+                              <span className={`userItemRoleBadge ${profile.rol === 'superadmin' ? 'admin' : ''}`}>
+                                {profile.rol}
+                              </span>
                             </div>
-                            <button 
-                              className={`roleToggleBtn ${profile.rol === 'superadmin' ? 'is-admin' : ''}`}
-                              onClick={() => handleToggleRole(profile.id, profile.rol)}
-                              disabled={profile.id === userProfile.id}
-                              title={profile.id === userProfile.id ? "No puedes quitarte tu propio rango" : "Cambiar rol"}
-                            >
-                              {profile.rol === 'superadmin' ? <Shield size={14} /> : <User size={14} />}
-                              {profile.rol === 'superadmin' ? 'Admin' : 'User'}
-                            </button>
+                            <div className="userItemActions">
+                              <button 
+                                className="iconBtn small" 
+                                onClick={() => setEditingUser(profile)}
+                                title="Editar"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button 
+                                className="iconBtn small del" 
+                                onClick={() => handleDeleteProfile(profile.id)}
+                                disabled={profile.id === userProfile.id}
+                                title="Eliminar"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         ))}
+                      </div>
+
+                      <div className="addUserGuide">
+                        <p><strong>Nota:</strong> Para agregar un nuevo usuario, créalo primero en el panel de Supabase Auth. El sistema creará su perfil automáticamente al primer ingreso.</p>
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {editingUser && (
+          <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ zIndex: 1100 }} onClick={() => setEditingUser(null)}>
+            <motion.div className="modalContent" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()}>
+              <div className="modalHeader">
+                <h2 className="modalTitle">Editar Usuario</h2>
+                <button className="modalClose" onClick={() => setEditingUser(null)}><X size={22} /></button>
+              </div>
+              <div className="modalBody">
+                <p className="editUserEmail">{editingUser.email}</p>
+                <form onSubmit={handleUpdateOtherProfile} className="settingsForm">
+                  <div className="formGroup">
+                    <label className="formLabel">Nombre</label>
+                    <input 
+                      type="text" 
+                      className="formInput" 
+                      value={editingUser.display_name}
+                      onChange={e => setEditingUser({...editingUser, display_name: e.target.value})}
+                    />
+                  </div>
+                  <div className="formGroup">
+                    <label className="formLabel">Rol</label>
+                    <select 
+                      className="formSelect"
+                      value={editingUser.rol}
+                      onChange={e => setEditingUser({...editingUser, rol: e.target.value})}
+                    >
+                      <option value="usuario">Usuario Estándar</option>
+                      <option value="superadmin">Superadmin</option>
+                    </select>
+                  </div>
+                  <div className="formGroup">
+                    <label className="formLabel">Icono / Emoji</label>
+                    <div className="emojiGrid">
+                      {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
+                        <button 
+                          key={emoji}
+                          type="button"
+                          className={`emojiBtn ${editingUser.avatar === emoji ? "active" : ""}`}
+                          onClick={() => setEditingUser({...editingUser, avatar: emoji})}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
+                    {authLoading ? "Guardando..." : "Actualizar Usuario"}
+                  </button>
+                </form>
               </div>
             </motion.div>
           </motion.div>

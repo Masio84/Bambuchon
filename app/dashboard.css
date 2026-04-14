@@ -1132,3 +1132,60 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.userItemRoleBadge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--border-light);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 0.25rem;
+}
+
+.userItemRoleBadge.admin {
+  background: #FEF9C3;
+  color: #854D0E;
+}
+
+.userItemActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.iconBtn.small {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.iconBtn.del:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+
+.addUserGuide {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 1rem;
+  border: 1px dashed #3B82F640;
+}
+
+.addUserGuide p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.editUserEmail {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
