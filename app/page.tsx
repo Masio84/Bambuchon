@@ -62,6 +62,7 @@ export default function BambuchoDashboard() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("perfil");
   const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
 
@@ -588,44 +589,58 @@ export default function BambuchoDashboard() {
                 </div>
 
                 <div className="settingsTabs">
-                  <button className="settingsTab active">Mi Perfil</button>
-                  {userProfile.rol === "superadmin" && <button className="settingsTab">Usuarios</button>}
+                  <button 
+                    className={`settingsTab ${activeTab === "perfil" ? "active" : ""}`}
+                    onClick={() => setActiveTab("perfil")}
+                  >
+                    Mi Perfil
+                  </button>
+                  {userProfile.rol === "superadmin" && (
+                    <button 
+                      className={`settingsTab ${activeTab === "usuarios" ? "active" : ""}`}
+                      onClick={() => setActiveTab("usuarios")}
+                    >
+                      Usuarios
+                    </button>
+                  )}
                 </div>
 
                 <div className="settingsContent">
-                  <form onSubmit={handleUpdateProfile} className="settingsForm">
-                    <div className="formGroup">
-                      <label className="formLabel">Nombre mostrado</label>
-                      <input 
-                        type="text" 
-                        className="formInput" 
-                        value={userProfile.name}
-                        onChange={e => setUserProfile({...userProfile, name: e.target.value})}
-                        placeholder="Tu nombre"
-                      />
-                    </div>
-                    <div className="formGroup">
-                      <label className="formLabel">Icono / Emoji</label>
-                      <div className="emojiGrid">
-                        {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
-                          <button 
-                            key={emoji}
-                            type="button"
-                            className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
-                            onClick={() => setUserProfile({...userProfile, avatar: emoji})}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
+                  {activeTab === "perfil" && (
+                    <form onSubmit={handleUpdateProfile} className="settingsForm">
+                      <div className="formGroup">
+                        <label className="formLabel">Nombre mostrado</label>
+                        <input 
+                          type="text" 
+                          className="formInput" 
+                          value={userProfile.name}
+                          onChange={e => setUserProfile({...userProfile, name: e.target.value})}
+                          placeholder="Tu nombre"
+                        />
                       </div>
-                    </div>
-                    <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
-                      {authLoading ? "Guardando..." : "Guardar Cambios"}
-                    </button>
-                  </form>
+                      <div className="formGroup">
+                        <label className="formLabel">Icono / Emoji</label>
+                        <div className="emojiGrid">
+                          {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
+                            <button 
+                              key={emoji}
+                              type="button"
+                              className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
+                              onClick={() => setUserProfile({...userProfile, avatar: emoji})}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
+                        {authLoading ? "Guardando..." : "Guardar Cambios"}
+                      </button>
+                    </form>
+                  )}
 
-                  {userProfile.rol === "superadmin" && (
-                    <div className="userManagementSection">
+                  {activeTab === "usuarios" && userProfile.rol === "superadmin" && (
+                    <div className="userManagementSection" style={{ marginTop: 0, paddingTop: 0, border: 'none' }}>
                       <h3 className="sectionTitle">
                         <Users size={16} /> Gestión de Usuarios
                       </h3>
