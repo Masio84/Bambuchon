@@ -104,7 +104,8 @@ export default function BambuchoDashboard() {
   };
 
   const fetchAllProfiles = async () => {
-    const { data } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
+    const { data, error } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
+    if (error) console.error("Error cargando perfiles:", error);
     if (data) setAllProfiles(data);
   };
 
@@ -115,7 +116,7 @@ export default function BambuchoDashboard() {
       if (session?.user) fetchProfile(session.user.id, session.user);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) fetchProfile(session.user.id, session.user);
       else {
@@ -124,7 +125,18 @@ export default function BambuchoDashboard() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Suscripción Realtime para Perfiles
+    const profilesSub = supabase
+      .channel('perfiles_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        fetchAllProfiles();
+      })
+      .subscribe();
+
+    return () => {
+      authSub.unsubscribe();
+      supabase.removeChannel(profilesSub);
+    };
   }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
