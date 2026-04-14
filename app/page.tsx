@@ -66,6 +66,7 @@ export default function BambuchoDashboard() {
   const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
 
   const fetchProfile = async (uid: string, userSession: any) => {
     // 1. Intentar obtener perfil de la base de datos
@@ -104,9 +105,18 @@ export default function BambuchoDashboard() {
   };
 
   const fetchAllProfiles = async () => {
+    setDbError(null);
     const { data, error } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
-    if (error) console.error("Error cargando perfiles:", error);
-    if (data) setAllProfiles(data);
+    
+    if (error) {
+      console.error("Error cargando perfiles:", error);
+      setDbError(error.message);
+    }
+    
+    if (data) {
+      setAllProfiles(data);
+      if (data.length === 0) setDbError("La tabla existe pero devolvió 0 registros. Revisa las políticas RLS.");
+    }
   };
 
   useEffect(() => {
@@ -673,11 +683,20 @@ export default function BambuchoDashboard() {
 
                   {activeTab === "usuarios" && userProfile.rol === "superadmin" && (
                     <div className="userManagementSection" style={{ marginTop: 0, paddingTop: 0, border: 'none' }}>
-                      <div className="sectionHeaderRow">
-                        <h3 className="sectionTitle">
-                          <Users size={16} /> Gestión de Usuarios ({allProfiles.length})
+                      <div className="sectionHeaderRow" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 className="sectionTitle" style={{ margin: 0 }}>
+                          <Users size={16} /> Usuarios ({allProfiles.length})
                         </h3>
+                        <button className="iconBtn small" onClick={fetchAllProfiles} title="Recargar lista">
+                          <RefreshCw size={14} className={authLoading ? "spin" : ""} />
+                        </button>
                       </div>
+
+                      {dbError && (
+                        <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                          <strong>⚠️ Error de Base de Datos:</strong> {dbError}
+                        </div>
+                      )}
                       
                       <div className="userList">
                         {allProfiles.map(profile => (
