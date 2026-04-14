@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Music, Heart, Truck, Utensils, FileText, MoreHorizontal,
-  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera
+  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut
 } from "lucide-react";
 import "./dashboard.css";
 
@@ -56,6 +56,42 @@ export default function BambuchoDashboard() {
   const [editFormData, setEditFormData] = useState({ concepto: "", importe: "", categoria: "", usuario: "" });
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    setIsMounted(true);
+    // Verificar sesión inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Escuchar cambios en la sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword,
+    });
+    if (error) setAuthError("Credenciales inválidas. Intenta de nuevo.");
+    setAuthLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -190,6 +226,59 @@ export default function BambuchoDashboard() {
 
   if (!isMounted) return null;
 
+  if (!session) {
+    return (
+      <div className="loginContainer">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="loginCard"
+        >
+          <div className="loginHeader">
+            <span className="loginLogo">🐰</span>
+            <h1 className="loginTitle">Bambuchón Financiero</h1>
+            <p className="loginSubtitle">Acceso Privado</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="loginForm">
+            <div className="formGroup">
+              <label className="formLabel">Correo Electrónico</label>
+              <input 
+                type="email" 
+                className="formInput" 
+                placeholder="tu@correo.com"
+                value={authEmail}
+                onChange={e => setAuthEmail(e.target.value)}
+                required 
+              />
+            </div>
+            <div className="formGroup">
+              <label className="formLabel">Contraseña</label>
+              <input 
+                type="password" 
+                className="formInput" 
+                placeholder="••••••••"
+                value={authPassword}
+                onChange={e => setAuthPassword(e.target.value)}
+                required 
+              />
+            </div>
+            
+            {authError && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="authError">{authError}</motion.p>}
+            
+            <button type="submit" className="loginBtn" disabled={authLoading}>
+              {authLoading ? "Verificando..." : "Entrar al Dashboard"}
+            </button>
+          </form>
+          
+          <div className="loginFooter">
+            <Lock size={12} /> Espacio Seguro y Encriptado
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboardContainer">
       {/* HEADER */}
@@ -207,6 +296,9 @@ export default function BambuchoDashboard() {
           </button>
           <button className="iconBtn" onClick={toggleTheme} title="Cambiar tema">
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+          <button className="iconBtn" onClick={handleLogout} title="Cerrar sesión" style={{ color: "#EF4444" }}>
+            <LogOut size={18} />
           </button>
           <button className="btn-primary" onClick={() => openModal("create")} style={{ padding: "8px 16px", borderRadius: 12, display: "flex", alignItems: "center", gap: 8 }}>
             <Pencil size={16} /> Nuevo
