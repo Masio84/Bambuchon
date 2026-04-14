@@ -53,7 +53,7 @@ export default function BambuchoDashboard() {
   const [activeModal, setActiveModal] = useState<"view" | "edit" | "delete" | "create" | null>(null);
   const [selectedGasto, setSelectedGasto] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editFormData, setEditFormData] = useState({ concepto: "", importe: "", categoria: "", usuario: "" });
+  const [editFormData, setEditFormData] = useState({ concepto: "", importe: "", categoria: "", usuario: "", tipo: "egreso" });
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [session, setSession] = useState<any>(null);
