@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Music, Heart, Truck, Utensils, FileText, MoreHorizontal,
-  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut, Settings, User, Check
+  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut, Settings, User, Check, Users, Shield
 } from "lucide-react";
 import "./dashboard.css";
 
@@ -62,29 +62,35 @@ export default function BambuchoDashboard() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState({ name: "", avatar: "👤" });
+  const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+
+  const fetchProfile = async (uid: string) => {
+    const { data, error } = await supabase.from('perfiles').select('*').eq('id', uid).single();
+    if (data && !error) {
+      setUserProfile({ id: data.id, name: data.display_name || "Usuario", avatar: data.avatar || "👤", rol: data.rol });
+      if (data.rol === 'superadmin') fetchAllProfiles();
+    }
+  };
+
+  const fetchAllProfiles = async () => {
+    const { data } = await supabase.from('perfiles').select('*').order('created_at', { ascending: true });
+    if (data) setAllProfiles(data);
+  };
 
   useEffect(() => {
     setIsMounted(true);
-    // Verificar sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) {
-        setUserProfile({
-          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || "Usuario",
-          avatar: session.user.user_metadata?.avatar || "👤"
-        });
-      }
+      if (session?.user) fetchProfile(session.user.id);
     });
 
-    // Escuchar cambios en la sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) {
-        setUserProfile({
-          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || "Usuario",
-          avatar: session.user.user_metadata?.avatar || "👤"
-        });
+      if (session?.user) fetchProfile(session.user.id);
+      else {
+        setUserProfile({ id: "", name: "", avatar: "👤", rol: "usuario" });
+        setAllProfiles([]);
       }
     });
 
@@ -94,11 +100,22 @@ export default function BambuchoDashboard() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
-    const { error } = await supabase.auth.updateUser({
-      data: { display_name: userProfile.name, avatar: userProfile.avatar }
-    });
-    if (!error) setIsSettingsOpen(false);
+    const { error } = await supabase.from('perfiles').update({
+      display_name: userProfile.name,
+      avatar: userProfile.avatar
+    }).eq('id', userProfile.id);
+    
+    if (!error) {
+      setIsSettingsOpen(false);
+      if (userProfile.rol === 'superadmin') fetchAllProfiles();
+    }
     setAuthLoading(false);
+  };
+
+  const handleToggleRole = async (targetId: string, currentRole: string) => {
+    const newRole = currentRole === 'superadmin' ? 'usuario' : 'superadmin';
+    const { error } = await supabase.from('perfiles').update({ rol: newRole }).eq('id', targetId);
+    if (!error) fetchAllProfiles();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -320,8 +337,8 @@ export default function BambuchoDashboard() {
               <div className="headerAvatar">{userProfile.avatar}</div>
               <div className="headerUserData">
                 <span className="headerUserName">{userProfile.name}</span>
-                <span className={`headerUserRole ${session.user.email === "masio.tds@gmail.com" ? "role-admin" : ""}`}>
-                  {session.user.email === "masio.tds@gmail.com" ? "Superadmin" : "Usuario"}
+                <span className={`headerUserRole ${userProfile.rol === "superadmin" ? "role-admin" : ""}`}>
+                  {userProfile.rol === "superadmin" ? "Superadmin" : "Usuario"}
                 </span>
               </div>
             </div>
@@ -536,42 +553,77 @@ export default function BambuchoDashboard() {
                   <div className="settingsAvatar">{userProfile.avatar}</div>
                   <div className="settingsUserInfo">
                     <span className="settingsEmail">{session?.user?.email}</span>
-                    {session?.user?.email === "masio.tds@gmail.com" && (
+                    {userProfile.rol === "superadmin" && (
                       <span className="superadminBadge">👑 Superadmin</span>
                     )}
                   </div>
                 </div>
 
-                <form onSubmit={handleUpdateProfile} className="settingsForm">
-                  <div className="formGroup">
-                    <label className="formLabel">Nombre mostrado</label>
-                    <input 
-                      type="text" 
-                      className="formInput" 
-                      value={userProfile.name}
-                      onChange={e => setUserProfile({...userProfile, name: e.target.value})}
-                      placeholder="Tu nombre"
-                    />
-                  </div>
-                  <div className="formGroup">
-                    <label className="formLabel">Icono / Emoji</label>
-                    <div className="emojiGrid">
-                      {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
-                        <button 
-                          key={emoji}
-                          type="button"
-                          className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
-                          onClick={() => setUserProfile({...userProfile, avatar: emoji})}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
+                <div className="settingsTabs">
+                  <button className="settingsTab active">Mi Perfil</button>
+                  {userProfile.rol === "superadmin" && <button className="settingsTab">Usuarios</button>}
+                </div>
+
+                <div className="settingsContent">
+                  <form onSubmit={handleUpdateProfile} className="settingsForm">
+                    <div className="formGroup">
+                      <label className="formLabel">Nombre mostrado</label>
+                      <input 
+                        type="text" 
+                        className="formInput" 
+                        value={userProfile.name}
+                        onChange={e => setUserProfile({...userProfile, name: e.target.value})}
+                        placeholder="Tu nombre"
+                      />
                     </div>
-                  </div>
-                  <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
-                    {authLoading ? "Guardando..." : "Guardar Cambios"}
-                  </button>
-                </form>
+                    <div className="formGroup">
+                      <label className="formLabel">Icono / Emoji</label>
+                      <div className="emojiGrid">
+                        {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
+                          <button 
+                            key={emoji}
+                            type="button"
+                            className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
+                            onClick={() => setUserProfile({...userProfile, avatar: emoji})}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
+                      {authLoading ? "Guardando..." : "Guardar Cambios"}
+                    </button>
+                  </form>
+
+                  {userProfile.rol === "superadmin" && (
+                    <div className="userManagementSection">
+                      <h3 className="sectionTitle">
+                        <Users size={16} /> Gestión de Usuarios
+                      </h3>
+                      <div className="userList">
+                        {allProfiles.map(profile => (
+                          <div key={profile.id} className="userItem">
+                            <div className="userItemAvatarSmall">{profile.avatar || "👤"}</div>
+                            <div className="userItemInfo">
+                              <span className="userItemName">{profile.display_name}</span>
+                              <span className="userItemEmail">{profile.email}</span>
+                            </div>
+                            <button 
+                              className={`roleToggleBtn ${profile.rol === 'superadmin' ? 'is-admin' : ''}`}
+                              onClick={() => handleToggleRole(profile.id, profile.rol)}
+                              disabled={profile.id === userProfile.id}
+                              title={profile.id === userProfile.id ? "No puedes quitarte tu propio rango" : "Cambiar rol"}
+                            >
+                              {profile.rol === 'superadmin' ? <Shield size={14} /> : <User size={14} />}
+                              {profile.rol === 'superadmin' ? 'Admin' : 'User'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </motion.div>
