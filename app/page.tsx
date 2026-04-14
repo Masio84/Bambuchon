@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Music, Heart, Truck, Utensils, FileText, MoreHorizontal,
-  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut
+  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut, Settings, User, Check
 } from "lucide-react";
 import "./dashboard.css";
 
@@ -61,21 +61,45 @@ export default function BambuchoDashboard() {
   const [authPassword, setAuthPassword] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState({ name: "", avatar: "👤" });
 
   useEffect(() => {
     setIsMounted(true);
     // Verificar sesión inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        setUserProfile({
+          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || "Usuario",
+          avatar: session.user.user_metadata?.avatar || "👤"
+        });
+      }
     });
 
     // Escuchar cambios en la sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) {
+        setUserProfile({
+          name: session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || "Usuario",
+          avatar: session.user.user_metadata?.avatar || "👤"
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { display_name: userProfile.name, avatar: userProfile.avatar }
+    });
+    if (!error) setIsSettingsOpen(false);
+    setAuthLoading(false);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,6 +321,9 @@ export default function BambuchoDashboard() {
           <button className="iconBtn" onClick={toggleTheme} title="Cambiar tema">
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
           </button>
+          <button className="iconBtn" onClick={() => setIsSettingsOpen(true)} title="Configuración">
+            <Settings size={18} />
+          </button>
           <button className="iconBtn" onClick={handleLogout} title="Cerrar sesión" style={{ color: "#EF4444" }}>
             <LogOut size={18} />
           </button>
@@ -485,6 +512,60 @@ export default function BambuchoDashboard() {
 
       {/* MODALS */}
       <AnimatePresence>
+        {isSettingsOpen && (
+          <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSettingsOpen(false)}>
+            <motion.div className="modalContent settingsModal" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()}>
+              <div className="modalHeader">
+                <h2 className="modalTitle">Configuración</h2>
+                <button className="modalClose" onClick={() => setIsSettingsOpen(false)}><X size={22} /></button>
+              </div>
+
+              <div className="modalBody">
+                <div className="settingsUserHeader">
+                  <div className="settingsAvatar">{userProfile.avatar}</div>
+                  <div className="settingsUserInfo">
+                    <span className="settingsEmail">{session?.user?.email}</span>
+                    {session?.user?.email === "masio.tds@gmail.com" && (
+                      <span className="superadminBadge">👑 Superadmin</span>
+                    )}
+                  </div>
+                </div>
+
+                <form onSubmit={handleUpdateProfile} className="settingsForm">
+                  <div className="formGroup">
+                    <label className="formLabel">Nombre mostrado</label>
+                    <input 
+                      type="text" 
+                      className="formInput" 
+                      value={userProfile.name}
+                      onChange={e => setUserProfile({...userProfile, name: e.target.value})}
+                      placeholder="Tu nombre"
+                    />
+                  </div>
+                  <div className="formGroup">
+                    <label className="formLabel">Icono / Emoji</label>
+                    <div className="emojiGrid">
+                      {["👤", "🤖", "🐱", "🦊", "🦁", "🐧", "⭐", "🔥", "💎", "🎯"].map(emoji => (
+                        <button 
+                          key={emoji}
+                          type="button"
+                          className={`emojiBtn ${userProfile.avatar === emoji ? "active" : ""}`}
+                          onClick={() => setUserProfile({...userProfile, avatar: emoji})}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button type="submit" className="btn-primary" style={{ width: "100%", marginTop: "1rem" }} disabled={authLoading}>
+                    {authLoading ? "Guardando..." : "Guardar Cambios"}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {activeModal && (
           <motion.div className="modalOverlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal}>
             <motion.div className="modalContent" initial={{ scale: 0.92, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()}>

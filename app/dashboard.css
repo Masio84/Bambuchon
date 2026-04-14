@@ -832,3 +832,89 @@
   margin: 0;
   opacity: 0.8;
 }
+
+/* ── SETTINGS MODAL ── */
+.settingsUserHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--border-light);
+  border-radius: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.settingsAvatar {
+  font-size: 2.5rem;
+  background: var(--card-bg);
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.settingsUserInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settingsEmail {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+.superadminBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #854D0E;
+  background: #FEF9C3;
+  padding: 0.25rem 0.6rem;
+  border-radius: 2rem;
+  display: inline-flex;
+  width: fit-content;
+}
+
+[data-theme='dark'] .superadminBadge {
+  background: #3e2b0e;
+  color: #FDE68A;
+}
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.emojiBtn {
+  font-size: 1.5rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-light);
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emojiBtn:hover {
+  background: var(--border-light);
+  transform: scale(1.1);
+}
+
+.emojiBtn.active {
+  border-color: #3B82F6;
+  background: #EFF6FF;
+}
+
+[data-theme='dark'] .emojiBtn.active {
+  background: #1e3a5f;
+  border-color: #3B82F6;
+}
