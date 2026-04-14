@@ -65,11 +65,39 @@ export default function BambuchoDashboard() {
   const [userProfile, setUserProfile] = useState({ id: "", name: "", avatar: "👤", rol: "usuario" });
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
 
-  const fetchProfile = async (uid: string) => {
-    const { data, error } = await supabase.from('perfiles').select('*').eq('id', uid).single();
-    if (data && !error) {
-      setUserProfile({ id: data.id, name: data.display_name || "Usuario", avatar: data.avatar || "👤", rol: data.rol });
-      if (data.rol === 'superadmin') fetchAllProfiles();
+  const fetchProfile = async (uid: string, userSession: any) => {
+    // 1. Intentar obtener perfil de la base de datos
+    let { data, error } = await supabase.from('perfiles').select('*').eq('id', uid).single();
+    
+    // Fallback de datos desde la sesión si falla la BD o el registro no existe
+    const fallbackName = userSession.user_metadata?.display_name || userSession.email?.split('@')[0] || "Usuario";
+    const isSuperAdminEmail = userSession.email === "masio.tds@gmail.com";
+
+    if (!data || error) {
+      // Si no existe, usamos los datos de la sesión temporalmente
+      setUserProfile({ 
+        id: uid, 
+        name: fallbackName, 
+        avatar: "👤", 
+        rol: isSuperAdminEmail ? "superadmin" : "usuario" 
+      });
+
+      // Intentar crear el perfil si no existe (Auto-Sincronización)
+      await supabase.from('perfiles').upsert({
+        id: uid,
+        email: userSession.email,
+        display_name: fallbackName,
+        rol: isSuperAdminEmail ? "superadmin" : "usuario"
+      });
+    } else {
+      // Si existe, priorizamos la base de datos pero forzamos superadmin si es el correo maestro
+      setUserProfile({ 
+        id: data.id, 
+        name: data.display_name || fallbackName, 
+        avatar: data.avatar || "👤", 
+        rol: isSuperAdminEmail ? "superadmin" : data.rol 
+      });
+      if (data.rol === 'superadmin' || isSuperAdminEmail) fetchAllProfiles();
     }
   };
 
@@ -82,12 +110,12 @@ export default function BambuchoDashboard() {
     setIsMounted(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) fetchProfile(session.user.id, session.user);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) fetchProfile(session.user.id, session.user);
       else {
         setUserProfile({ id: "", name: "", avatar: "👤", rol: "usuario" });
         setAllProfiles([]);
