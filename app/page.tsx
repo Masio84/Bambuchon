@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, Music, Heart, Truck, Utensils, FileText, MoreHorizontal,
-  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut, Settings, User, Check, Users, Shield
+  Eye, Pencil, Trash2, X, Send, Sun, Moon, Filter, Camera, Lock, LogOut, Settings, User, Check, Users, Shield, RefreshCw
 } from "lucide-react";
 import "./dashboard.css";
 
